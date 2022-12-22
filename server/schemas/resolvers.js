@@ -16,11 +16,11 @@ const resolvers = {
       return { token, user };
     },
 
-    login: async (parent, { email, password }) => {
+    loginUser: async (parent, { email, password }) => {
       const user = await User.findOne({ email });
 
       if (!user) {
-        throw new AuthenticationError("No user found with this email address");
+        throw new AuthenticationError("No user found.");
       }
 
       const correctPw = await user.isCorrectPassword(password);
@@ -34,24 +34,24 @@ const resolvers = {
       return { token, user };
     },
 
-    saveBook: async (
-      parent,
-      { bookId, authors, descripotion, title, image, link }
-    ) => {
-      const book = await Book.create({
-        bookId,
-        authors,
-        descripotion,
-        title,
-        image,
-        link,
-      });
-
-      await User.findOneAndUpdate({ $addToSet: { savedBooks: book.bookId } });
+    saveBook: async (parent, { input }, context) => {
+      if (context.user) {
+        return await User.findOneAndUpdate(
+          { _id: context.user._id },
+          { $addToSet: { savedBooks: input } },
+          { new: true }
+        );
+      }
     },
 
-    deleteBook: async (parent, { bookId }) => {
-      return Book.findONeAndDelete({ bookId: bookId });
+    removeBook: async (parent, { bookId }, context) => {
+      if (context.user) {
+        return await User.findOneAndUpdate(
+          { _id: context.user._id },
+          { $pull: { savedBooks: { bookId } } },
+          { new: true }
+        );
+      }
     },
   },
 };
